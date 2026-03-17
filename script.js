@@ -1,4 +1,4 @@
-// Simple platformer with player death, enemies that can be killed by jumping on them
+// Simple platformer with win condition (all enemies defeated)
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -21,7 +21,7 @@ const player = {
 // Ground definition
 const ground = {y: 560, height: 40, color: 'green'};
 
-// Enemies – each now has health and can be removed
+// Enemies – each has health; game is won when array is empty
 let enemies = [
   {x: 300, y: ground.y - 60, width: 40, height: 60, color: 'purple', speed: 2, dir: 1, health: 1},
   {x: 600, y: ground.y - 60, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1, health: 1}
@@ -70,7 +70,6 @@ function updateEnemies() {
 
 function checkCollisions() {
   if (!player.alive) return;
-  // player‑enemy collisions
   enemies = enemies.filter(e => {
     const colliding =
       player.x < e.x + e.width &&
@@ -78,14 +77,12 @@ function checkCollisions() {
       player.y < e.y + e.height &&
       player.y + player.height > e.y;
     if (!colliding) return true; // keep enemy
-    // Determine if player is landing on top (vy > 0 and player's bottom was above enemy's top)
     const landing = player.vy > 0 && (player.y + player.height - player.vy) <= e.y;
     if (landing) {
-      // Kill enemy
-      // optional visual cue could be added
-      return false; // remove enemy
+      // kill enemy
+      return false; // remove
     } else {
-      // Damage player (same as before)
+      // damage player
       if (!player.invulnerable) {
         player.health--;
         const dx = player.x + player.width/2 - (e.x + e.width/2);
@@ -127,12 +124,19 @@ function draw() {
   ctx.fillStyle = 'black';
   ctx.font = '20px sans-serif';
   ctx.fillText('Health: ' + player.health, 10, 30);
+  // Win / Game Over messages
   if (!player.alive) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = 'white';
     ctx.font = '40px sans-serif';
     ctx.fillText('Game Over', canvas.width/2 - 100, canvas.height/2);
+  } else if (enemies.length === 0) {
+    ctx.fillStyle = 'rgba(0,255,0,0.5)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = 'black';
+    ctx.font = '40px sans-serif';
+    ctx.fillText('You Win!', canvas.width/2 - 100, canvas.height/2);
   }
 }
 
