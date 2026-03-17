@@ -10,7 +10,8 @@ const player = {
   height: 60,
   color: 'red',
   speed: 3,
-  vy: 0 // vertical velocity
+  vy: 0, // vertical velocity
+  canJump: true // flag to allow a single jump
 };
 
 // Ground definition
@@ -33,6 +34,7 @@ function applyGravity() {
   if (player.y + player.height > ground.y) {
     player.y = ground.y - player.height;
     player.vy = 0;
+    player.canJump = true; // reset jump ability when on ground
   }
   // Prevent leaving the top of the canvas
   if (player.y < 0) {
@@ -49,9 +51,10 @@ function updatePlayer() {
   if (keys['ArrowRight']) {
     player.x += player.speed;
   }
-  // Jump with ArrowUp
-  if (keys['ArrowUp'] && player.vy === 0) {
+  // Jump with ArrowUp – only if canJump is true
+  if (keys['ArrowUp'] && player.canJump) {
     player.vy = -10; // give an upward impulse
+    player.canJump = false; // consume the jump
   }
   // Apply gravity each frame
   applyGravity();
