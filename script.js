@@ -1,8 +1,27 @@
-// Simple platformer with Mario rectangle, closely spaced platforms, and all existing mechanics
+// Simple platformer with Mario rectangle, closely spaced platforms, play‑again button, and all existing mechanics
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-// Player object (Mario)
+// ----- Game state -----
+function initGame(){
+  // Player object (Mario)
+  player.x = 100;
+  player.y = 0;
+  player.vy = 0;
+  player.canJump = false;
+  player.health = 3;
+  player.invulnerable = false;
+  player.invulnTimer = 0;
+  player.alive = true;
+
+  // Enemies (reset positions)
+  enemies = [
+    {x: 300, y: ground.y - 60, width: 40, height: 60, color: 'purple', speed: 2, dir: 1},
+    {x: 600, y: ground.y - 60, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1}
+  ];
+}
+
+// Player object (Mario) – will be re‑initialized by initGame()
 const player = {
   x: 100,
   y: 0,
@@ -20,19 +39,17 @@ const player = {
 // Ground definition
 const ground = {y: 560, height: 40, color: 'green'};
 
-// Platforms – placed closer together horizontally so the player can hop between them
+// Platforms – close enough to hop between
 const platforms = [
-  {x: 120, y: 500, width: 120, height: 15, color: '#8B4513'}, // first platform near start
-  {x: 260, y: 420, width: 120, height: 15, color: '#8B4513'}, // second platform reachable from first
-  {x: 400, y: 340, width: 120, height: 15, color: '#8B4513'}, // third platform reachable from second
-  {x: 540, y: 260, width: 120, height: 15, color: '#8B4513'}  // fourth platform near the right side
+  {x: 120, y: 500, width: 120, height: 15, color: '#8B4513'},
+  {x: 260, y: 420, width: 120, height: 15, color: '#8B4513'},
+  {x: 400, y: 340, width: 120, height: 15, color: '#8B4513'},
+  {x: 540, y: 260, width: 120, height: 15, color: '#8B4513'}
 ];
 
-// Enemies – can be killed by jumping on them
-let enemies = [
-  {x: 300, y: ground.y - 60, width: 40, height: 60, color: 'purple', speed: 2, dir: 1},
-  {x: 600, y: ground.y - 60, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1}
-];
+// Enemies – will be reset in initGame()
+let enemies = [];
+initGame(); // initial set‑up
 
 // Input handling
 const keys = {};
@@ -70,8 +87,10 @@ function updatePlayer(){
   if (keys['ArrowRight']) player.x += player.speed;
   if (keys['ArrowUp'] && player.canJump){ player.vy = -10; player.canJump = false; }
   applyGravity();
+  // keep inside canvas horizontally
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+  // invulnerability timer
   if (player.invulnerable){
     player.invulnTimer--;
     if (player.invulnTimer <= 0) player.invulnerable = false;
@@ -135,20 +154,47 @@ function draw(){
   ctx.fillStyle = 'black';
   ctx.font = '20px sans-serif';
   ctx.fillText('Health: '+player.health,10,30);
-  // win/lose
+  // win/lose messages + Play Again button
   if (!player.alive){
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = 'white';
     ctx.font = '40px sans-serif';
-    ctx.fillText('Game Over', canvas.width/2-100, canvas.height/2);
+    ctx.fillText('Game Over', canvas.width/2-100, canvas.height/2-30);
+    showPlayAgainButton();
   } else if (enemies.length===0){
     ctx.fillStyle = 'rgba(0,255,0,0.5)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = 'black';
     ctx.font = '40px sans-serif';
-    ctx.fillText('You Win!', canvas.width/2-100, canvas.height/2);
+    ctx.fillText('You Win!', canvas.width/2-100, canvas.height/2-30);
+    showPlayAgainButton();
   }
 }
-function loop(){ draw(); requestAnimationFrame(loop); }
+
+function loop(){
+  draw();
+  requestAnimationFrame(loop);
+}
 loop();
+
+// ----- Play Again button handling -----
+function showPlayAgainButton(){
+  // Create button only once
+  if (document.getElementById('playAgainBtn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'playAgainBtn';
+  btn.textContent = 'Play Again';
+  btn.style.position = 'absolute';
+  btn.style.left = (canvas.offsetLeft + canvas.width/2 - 60) + 'px';
+  btn.style.top = (canvas.offsetTop + canvas.height/2 + 20) + 'px';
+  btn.style.padding = '10px 20px';
+  btn.style.fontSize = '16px';
+  btn.onclick = () => {
+    // reset game state
+    initGame();
+    // remove button
+    btn.remove();
+  };
+  document.body.appendChild(btn);
+}
