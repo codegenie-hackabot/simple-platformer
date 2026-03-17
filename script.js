@@ -1,4 +1,4 @@
-// Simple platformer with Mario rectangle, platforms, and all existing mechanics
+// Simple platformer with Mario rectangle, lower platforms, and all existing mechanics
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -20,11 +20,11 @@ const player = {
 // Ground definition
 const ground = {y: 560, height: 40, color: 'green'};
 
-// Platforms – static rectangles the player can stand on
+// Platforms – placed lower so they are reachable
 const platforms = [
-  {x: 150, y: 450, width: 120, height: 15, color: '#8B4513'},
-  {x: 400, y: 350, width: 150, height: 15, color: '#8B4513'},
-  {x: 200, y: 250, width: 100, height: 15, color: '#8B4513'}
+  {x: 150, y: 500, width: 120, height: 15, color: '#8B4513'}, // lower than before
+  {x: 400, y: 400, width: 150, height: 15, color: '#8B4513'},
+  {x: 200, y: 300, width: 100, height: 15, color: '#8B4513'}
 ];
 
 // Enemies – can be killed by jumping on them
@@ -41,23 +41,25 @@ window.addEventListener('keyup', e => { keys[e.key] = false; });
 function applyGravity(){
   player.vy += 0.5;
   player.y += player.vy;
-  // ground collision
+  // Ground collision
   if (player.y + player.height > ground.y){
     player.y = ground.y - player.height;
     player.vy = 0;
     player.canJump = true;
   }
-  // platform collision (from above only)
+  // Platform collision (from above only)
   platforms.forEach(p => {
-    const onTop = player.y + player.height > p.y && player.y + player.height - player.vy <= p.y &&
-                  player.x + player.width > p.x && player.x < p.x + p.width;
+    const onTop = player.y + player.height > p.y &&
+                  player.y + player.height - player.vy <= p.y &&
+                  player.x + player.width > p.x &&
+                  player.x < p.x + p.width;
     if (onTop){
       player.y = p.y - player.height;
       player.vy = 0;
       player.canJump = true;
     }
   });
-  // ceiling
+  // Ceiling
   if (player.y < 0){ player.y = 0; player.vy = 0; }
 }
 
@@ -67,10 +69,10 @@ function updatePlayer(){
   if (keys['ArrowRight']) player.x += player.speed;
   if (keys['ArrowUp'] && player.canJump){ player.vy = -10; player.canJump = false; }
   applyGravity();
-  // keep inside canvas horizontally
+  // Keep inside canvas horizontally
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-  // invulnerability timer
+  // Invulnerability timer
   if (player.invulnerable){
     player.invulnTimer--;
     if (player.invulnTimer <= 0) player.invulnerable = false;
@@ -113,28 +115,28 @@ function checkCollisions(){
 
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // ground
+  // Ground
   ctx.fillStyle = ground.color;
   ctx.fillRect(0, ground.y, canvas.width, ground.height);
-  // platforms
+  // Platforms
   platforms.forEach(p=>{ ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.width, p.height); });
-  // player
+  // Player
   updatePlayer();
   ctx.fillStyle = player.alive ? 'red' : 'gray';
   ctx.fillRect(player.x, player.y, player.width, player.height);
   ctx.fillStyle = 'white';
   ctx.font = '12px sans-serif';
   ctx.fillText('Mario', player.x+4, player.y+player.height/2+4);
-  // enemies
+  // Enemies
   updateEnemies();
   enemies.forEach(e=>{ ctx.fillStyle = e.color; ctx.fillRect(e.x, e.y, e.width, e.height); });
-  // collisions
+  // Collisions
   checkCollisions();
   // HUD
   ctx.fillStyle = 'black';
   ctx.font = '20px sans-serif';
   ctx.fillText('Health: '+player.health,10,30);
-  // win/lose messages
+  // Win/lose messages
   if (!player.alive){
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
