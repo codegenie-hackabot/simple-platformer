@@ -1,4 +1,4 @@
-// Simple platformer with left/right movement, gravity, and basic enemies
+// Simple platformer with left/right movement, gravity, enemies that stay on the ground and damage the player
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -11,16 +11,17 @@ const player = {
   color: 'red',
   speed: 3,
   vy: 0,
-  canJump: true
+  canJump: true,
+  health: 3 // player health, loses 1 on enemy contact
 };
 
 // Ground definition
 const ground = {y: 560, height: 40, color: 'green'};
 
-// Simple enemy definition (moves back and forth)
+// Enemies – they stay on the ground and move horizontally
 const enemies = [
-  {x: 300, y: 0, width: 40, height: 60, color: 'purple', speed: 2, dir: 1},
-  {x: 600, y: 0, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1}
+  {x: 300, y: ground.y - 60, width: 40, height: 60, color: 'purple', speed: 2, dir: 1},
+  {x: 600, y: ground.y - 60, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1}
 ];
 
 // Input handling
@@ -53,18 +54,29 @@ function updateEnemies() {
     e.x += e.speed * e.dir;
     // Reverse direction on canvas edges
     if (e.x < 0 || e.x + e.width > canvas.width) e.dir *= -1;
-    // Simple ground collision for enemies
-    if (e.y + e.height > ground.y) {
-      e.y = ground.y - e.height;
-    } else {
-      // apply gravity to enemies as well
-      e.y += 0.5;
+    // Keep enemy on the ground (y is fixed)
+    e.y = ground.y - e.height;
+  });
+}
+
+function checkCollisions() {
+  enemies.forEach(e => {
+    const colliding =
+      player.x < e.x + e.width &&
+      player.x + player.width > e.x &&
+      player.y < e.y + e.height &&
+      player.y + player.height > e.y;
+    if (colliding && player.health > 0) {
+      player.health--;
+      // Simple visual feedback – flash player color briefly
+      player.color = 'black';
+      setTimeout(() => { player.color = 'red'; }, 100);
     }
   });
 }
 
 function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   // Ground
   ctx.fillStyle = ground.color;
   ctx.fillRect(0, ground.y, canvas.width, ground.height);
@@ -78,6 +90,13 @@ function draw() {
     ctx.fillStyle = e.color;
     ctx.fillRect(e.x, e.y, e.width, e.height);
   });
+  // Collision detection
+  checkCollisions();
+  // Draw health
+  ctx.fillStyle = 'black';
+  ctx.font = '20px sans-serif';
+  ctx.fillText('Health: ' + player.health, 10, 30);
 }
 
-function loop(){draw();requestAnimationFrame(loop);} loop();
+function loop() { draw(); requestAnimationFrame(loop); }
+loop();
