@@ -1,4 +1,4 @@
-// Simple platformer with left/right movement, gravity, enemies, knock‑back, temporary invulnerability, and player death
+// Simple platformer with player death, enemies that can be killed by jumping on them
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -15,16 +15,16 @@ const player = {
   health: 3,
   invulnerable: false,
   invulnTimer: 0,
-  alive: true // new flag
+  alive: true
 };
 
 // Ground definition
 const ground = {y: 560, height: 40, color: 'green'};
 
-// Enemies – stay on ground and move horizontally
-const enemies = [
-  {x: 300, y: ground.y - 60, width: 40, height: 60, color: 'purple', speed: 2, dir: 1},
-  {x: 600, y: ground.y - 60, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1}
+// Enemies – each now has health and can be removed
+let enemies = [
+  {x: 300, y: ground.y - 60, width: 40, height: 60, color: 'purple', speed: 2, dir: 1, health: 1},
+  {x: 600, y: ground.y - 60, width: 40, height: 60, color: 'orange', speed: 1.5, dir: -1, health: 1}
 ];
 
 // Input handling
@@ -44,15 +44,13 @@ function applyGravity() {
 }
 
 function updatePlayer() {
-  if (!player.alive) return; // stop movement when dead
+  if (!player.alive) return;
   if (keys['ArrowLeft']) player.x -= player.speed;
   if (keys['ArrowRight']) player.x += player.speed;
   if (keys['ArrowUp'] && player.canJump) { player.vy = -10; player.canJump = false; }
   applyGravity();
-  // keep within bounds
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-  // invulnerability timer
   if (player.invulnerable) {
     player.invulnTimer--;
     if (player.invulnTimer <= 0) {
@@ -71,32 +69,39 @@ function updateEnemies() {
 }
 
 function checkCollisions() {
-  if (!player.alive || player.invulnerable) return;
-  enemies.forEach(e => {
+  if (!player.alive) return;
+  // player‑enemy collisions
+  enemies = enemies.filter(e => {
     const colliding =
       player.x < e.x + e.width &&
       player.x + player.width > e.x &&
       player.y < e.y + e.height &&
       player.y + player.height > e.y;
-    if (colliding && player.health > 0) {
-      // Damage
-      player.health--;
-      // Knock‑back
-      const dx = player.x + player.width/2 - (e.x + e.width/2);
-      const direction = dx >= 0 ? 1 : -1;
-      player.x += direction * 30;
-      // Clamp after knock‑back
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-      // Invulnerability period
-      player.invulnerable = true;
-      player.invulnTimer = 30;
-      player.color = 'black';
-      // If health dropped to zero, mark dead
-      if (player.health <= 0) {
-        player.alive = false;
-        player.color = 'gray'; // visual cue for death
+    if (!colliding) return true; // keep enemy
+    // Determine if player is landing on top (vy > 0 and player's bottom was above enemy's top)
+    const landing = player.vy > 0 && (player.y + player.height - player.vy) <= e.y;
+    if (landing) {
+      // Kill enemy
+      // optional visual cue could be added
+      return false; // remove enemy
+    } else {
+      // Damage player (same as before)
+      if (!player.invulnerable) {
+        player.health--;
+        const dx = player.x + player.width/2 - (e.x + e.width/2);
+        const direction = dx >= 0 ? 1 : -1;
+        player.x += direction * 30;
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+        player.invulnerable = true;
+        player.invulnTimer = 30;
+        player.color = 'black';
+        if (player.health <= 0) {
+          player.alive = false;
+          player.color = 'gray';
+        }
       }
+      return true; // keep enemy
     }
   });
 }
@@ -106,7 +111,7 @@ function draw() {
   // Ground
   ctx.fillStyle = ground.color;
   ctx.fillRect(0, ground.y, canvas.width, ground.height);
-  // Player (only drawn if alive or dead state)
+  // Player
   updatePlayer();
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x, player.y, player.width, player.height);
@@ -118,11 +123,10 @@ function draw() {
   });
   // Collisions
   checkCollisions();
-  // Health display
+  // HUD
   ctx.fillStyle = 'black';
   ctx.font = '20px sans-serif';
   ctx.fillText('Health: ' + player.health, 10, 30);
-  // If dead, show a message
   if (!player.alive) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -132,8 +136,4 @@ function draw() {
   }
 }
 
-function loop() {
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
+function loop(){draw();requestAnimationFrame(loop);} loop();
