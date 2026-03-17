@@ -1,10 +1,6 @@
-// Simple platformer with Mario sprite, win condition, etc.
+// Simple platformer with Mario represented as a rectangle (fallback) and all mechanics intact
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-
-// Load Mario image (public domain placeholder)
-const marioImg = new Image();
-marioImg.src = 'https://raw.githubusercontent.com/Codegenie-Hackabot/mario-sprite/main/mario.png'; // ensure this repo/image exists or replace with any URL
 
 // Player object (Mario)
 const player = {
@@ -56,7 +52,7 @@ function updatePlayer(){
   if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
   if (player.invulnerable){
     player.invulnTimer--;
-    if (player.invulnTimer <= 0){ player.invulnerable = false; }
+    if (player.invulnTimer <= 0) player.invulnerable = false;
   }
 }
 
@@ -64,14 +60,15 @@ function updateEnemies(){
   enemies.forEach(e=>{
     e.x += e.speed * e.dir;
     if (e.x < 0 || e.x + e.width > canvas.width) e.dir *= -1;
-    e.y = ground.y - e.height;
+    e.y = ground.y - e.height; // stay on ground
   });
 }
 
 function checkCollisions(){
   if (!player.alive) return;
   enemies = enemies.filter(e=>{
-    const colliding = player.x < e.x+e.width && player.x+player.width > e.x && player.y < e.y+e.height && player.y+player.height > e.y;
+    const colliding = player.x < e.x+e.width && player.x+player.width > e.x &&
+                     player.y < e.y+e.height && player.y+player.height > e.y;
     if (!colliding) return true;
     const landing = player.vy > 0 && (player.y + player.height - player.vy) <= e.y;
     if (landing){
@@ -86,7 +83,7 @@ function checkCollisions(){
         if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
         player.invulnerable = true;
         player.invulnTimer = 30;
-        if (player.health <= 0){ player.alive = false; }
+        if (player.health <= 0) player.alive = false;
       }
       return true;
     }
@@ -98,19 +95,13 @@ function draw(){
   // ground
   ctx.fillStyle = ground.color;
   ctx.fillRect(0, ground.y, canvas.width, ground.height);
-  // player (Mario)
+  // player (Mario as a red rectangle with label)
   updatePlayer();
-  if (player.alive){
-    if (marioImg.complete){
-      ctx.drawImage(marioImg, player.x, player.y, player.width, player.height);
-    } else {
-      ctx.fillStyle = 'red';
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-    }
-  } else {
-    ctx.fillStyle = 'gray';
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-  }
+  ctx.fillStyle = player.alive ? 'red' : 'gray';
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  ctx.fillStyle = 'white';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('Mario', player.x + 4, player.y + player.height/2 + 4);
   // enemies
   updateEnemies();
   enemies.forEach(e=>{ ctx.fillStyle = e.color; ctx.fillRect(e.x, e.y, e.width, e.height); });
